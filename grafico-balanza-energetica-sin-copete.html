@@ -1,0 +1,252 @@
+<!-- ============================================================
+  GRÁFICO EMBEBIBLE — Argentina: balanza comercial energética
+  Exportaciones e importaciones del capítulo 27 (NCM) + proxy de precios de combustibles
+  Fuentes: INDEC, ICA enero-abril 2026 e IPC nacional enero-abril 2026
+  Autocontenido: no requiere librerías externas.
+============================================================ -->
+<div id="te-energy" style="all:initial;display:block;font-family:Georgia,'Times New Roman',serif;max-width:880px;margin:0 auto;background:#fbfaf7;border:1px solid #e3ddd2;border-radius:4px;box-sizing:border-box;color:#1c1c1c;">
+  <style>
+    #te-energy *{box-sizing:border-box;}
+    #te-energy .te-pad{padding:28px 32px 24px;}
+    #te-energy .te-kicker{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a3412;font-weight:700;margin:0 0 8px;}
+    #te-energy h2{font-size:25px;line-height:1.18;font-weight:700;margin:0 0 10px;letter-spacing:-.01em;}
+    #te-energy .te-dek{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#57534e;margin:0 0 18px;max-width:720px;}
+    #te-energy .te-legend{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px;color:#44403c;margin-bottom:8px;font-weight:600;}
+    #te-energy .te-legend span{display:inline-flex;align-items:center;gap:7px;}
+    #te-energy .te-sw{width:12px;height:12px;border-radius:2px;display:inline-block;}
+    #te-energy .te-line{width:22px;height:0;border-top:3px solid #c2410c;border-radius:0;display:inline-block;position:relative;top:-1px;}
+    #te-energy .te-chartwrap{position:relative;}
+    #te-energy canvas{width:100%;height:auto;display:block;cursor:crosshair;}
+    #te-energy .te-tip{position:absolute;pointer-events:none;background:#1c1917;color:#fafaf9;padding:9px 12px;border-radius:5px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.55;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.22);}
+    #te-energy .te-tip b{font-size:12.5px;}
+    #te-energy .te-foot{border-top:1px solid #e3ddd2;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;line-height:1.55;color:#8a857c;padding:14px 32px 20px;}
+    #te-energy .te-foot b{color:#57534e;}
+  </style>
+
+  <div class="te-pad">
+    <p class="te-kicker">Comercio exterior · Energía</p>
+    <h2>La balanza energética se amplió mientras repuntaron los combustibles</h2>
+
+    <div class="te-legend">
+      <span><i class="te-sw" style="background:#0b6e4f;"></i>Exportaciones energéticas (USD millones)</span>
+      <span><i class="te-sw" style="background:#d6c7ae;"></i>Importaciones energéticas (USD millones)</span>
+      <span><i class="te-line"></i>Índice de combustibles* (ene=100)</span>
+    </div>
+
+    <div class="te-chartwrap">
+      <canvas id="teEnergyCanvas" width="816" height="440"></canvas>
+      <div id="teEnergyTip" class="te-tip"></div>
+    </div>
+  </div>
+
+  <div class="te-foot">
+    <b>Fuentes:</b> INDEC, <i>Intercambio comercial argentino</i> (enero, febrero, marzo y abril de 2026) e IPC nacional (enero-abril de 2026).
+  </div>
+</div>
+
+<script>
+(function(){
+  var data = [
+    {m:"Ene", exp:649, imp:144, saldo:505, fuelIdx:100.0},
+    {m:"Feb", exp:505, imp:126, saldo:379, fuelIdx:102.0},
+    {m:"Mar", exp:1065, imp:120, saldo:945, fuelIdx:106.2},
+    {m:"Abr", exp:1378, imp:130, saldo:1248, fuelIdx:110.9}
+  ];
+
+  var cv = document.getElementById("teEnergyCanvas");
+  var ctx = cv.getContext("2d");
+  var tip = document.getElementById("teEnergyTip");
+  var wrap = document.getElementById("te-energy");
+
+  var DPR = Math.min(window.devicePixelRatio||1, 2);
+  var W = 816, H = 440;
+  cv.width = W*DPR; cv.height = H*DPR; ctx.scale(DPR,DPR);
+  cv.style.width = "100%";
+
+  var padL = 62, padR = 64, padT = 34, padB = 52;
+  var pW = W - padL - padR, pH = H - padT - padB;
+  var maxVal = 1500;
+  var fuelMin = 98, fuelMax = 112;
+  var groupW = pW / data.length;
+  var barW = 34;
+
+  function gx(i){ return padL + groupW*i + groupW/2; }
+  function py(v){ return padT + (1 - v/maxVal) * pH; }
+  function fy(v){ return padT + (1 - (v-fuelMin)/(fuelMax-fuelMin)) * pH; }
+
+  function roundedRect(x,y,w,h,r,fill){
+    var rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    if(fill) ctx.fill(); else ctx.stroke();
+  }
+
+  function drawLinePath(key, yfn){
+    ctx.beginPath();
+    for(var i=0;i<data.length;i++){
+      var x = gx(i), y = yfn(data[i][key]);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+  }
+
+  function draw(hi){
+    ctx.clearRect(0,0,W,H);
+
+    // grid USD
+    ctx.font = "11px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+    ctx.textBaseline = "middle";
+    for(var v=0; v<=1500; v+=300){
+      var y = py(v);
+      ctx.strokeStyle = "#ece7dd";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+      ctx.fillStyle = "#a8a29a";
+      ctx.textAlign = "right";
+      ctx.fillText(v===0 ? "0" : "$"+v, padL-10, y);
+    }
+
+    // right axis fuel index
+    ctx.fillStyle = "#c2410c";
+    ctx.textAlign = "left";
+    [100,104,108,112].forEach(function(v){
+      ctx.fillText(v, W-padR+10, fy(v));
+    });
+
+    // x labels
+    ctx.fillStyle = "#78716c";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = "12px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+    data.forEach(function(d,i){ ctx.fillText(d.m+" 2026", gx(i), H-padB+12); });
+
+    // shaded area under line
+    drawLinePath("fuelIdx", fy);
+    ctx.lineTo(gx(data.length-1), fy(fuelMin));
+    ctx.lineTo(gx(0), fy(fuelMin));
+    ctx.closePath();
+    ctx.fillStyle = "rgba(194,65,12,0.06)";
+    ctx.fill();
+
+    // bars + saldo label
+    data.forEach(function(d,i){
+      var cx = gx(i);
+      var expX = cx - barW - 6;
+      var impX = cx + 6;
+      var expY = py(d.exp);
+      var impY = py(d.imp);
+      var baseY = py(0);
+
+      ctx.fillStyle = "#0b6e4f";
+      roundedRect(expX, expY, barW, baseY-expY, 4, true);
+      ctx.fillStyle = "#d6c7ae";
+      roundedRect(impX, impY, barW, baseY-impY, 4, true);
+
+      // saldo label above export bar
+      ctx.fillStyle = "#57534e";
+      ctx.font = "11px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("Saldo +$"+d.saldo, cx, Math.min(expY, impY) - 9);
+    });
+
+    // line
+    drawLinePath("fuelIdx", fy);
+    ctx.strokeStyle = "#c2410c";
+    ctx.lineWidth = 2.8;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    // line points
+    data.forEach(function(d,i){
+      ctx.beginPath();
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#c2410c";
+      ctx.lineWidth = 2.4;
+      ctx.arc(gx(i), fy(d.fuelIdx), 4.5, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    });
+
+    // annotation at Apr
+    ctx.fillStyle = "#9a3412";
+    ctx.font = "10px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("Abr: pico del cuatrimestre", gx(3)-8, fy(data[3].fuelIdx)-10);
+
+    // hover state
+    if(hi != null){
+      var hx = gx(hi);
+      ctx.strokeStyle = "#c7c2b8";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(hx,padT); ctx.lineTo(hx,H-padB); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // highlight bars
+      var d = data[hi];
+      var expX = hx - barW - 6;
+      var impX = hx + 6;
+      ctx.strokeStyle = "rgba(28,25,23,.18)";
+      ctx.lineWidth = 1.2;
+      roundedRect(expX, py(d.exp), barW, py(0)-py(d.exp), 4, false);
+      roundedRect(impX, py(d.imp), barW, py(0)-py(d.imp), 4, false);
+
+      // highlight line point
+      ctx.beginPath();
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#c2410c";
+      ctx.lineWidth = 3;
+      ctx.arc(hx, fy(d.fuelIdx), 5.5, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    }
+  }
+
+  draw(null);
+
+  function nearest(mx){
+    var best = null, bd = 9999;
+    for(var i=0;i<data.length;i++){
+      var d = Math.abs(gx(i)-mx);
+      if(d < bd){ bd = d; best = i; }
+    }
+    return best;
+  }
+
+  function showTip(i, clientX, clientY){
+    var o = data[i];
+    tip.style.opacity = "1";
+    tip.innerHTML = "<b>"+o.m+"/2026</b><br>Exportaciones: <b>USD "+o.exp+" M</b><br>Importaciones: <b>USD "+o.imp+" M</b><br>Saldo: <b>USD "+o.saldo+" M</b><br>Índice combustibles*: <b>"+o.fuelIdx.toFixed(1)+"</b>";
+    var wr = wrap.getBoundingClientRect();
+    var left = clientX - wr.left + 16;
+    var top = clientY - wr.top - 10;
+    if(left > wrap.clientWidth - 190) left = clientX - wr.left - 190;
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+  }
+
+  cv.addEventListener("mousemove", function(e){
+    var r = cv.getBoundingClientRect();
+    var mx = (e.clientX-r.left) * (W/r.width);
+    var i = nearest(mx);
+    draw(i);
+    showTip(i, e.clientX, e.clientY);
+  });
+
+  cv.addEventListener("mouseleave", function(){
+    tip.style.opacity = "0";
+    draw(null);
+  });
+
+  cv.addEventListener("touchmove", function(e){
+    var t = e.touches[0], r = cv.getBoundingClientRect();
+    var mx = (t.clientX-r.left) * (W/r.width);
+    var i = nearest(mx);
+    draw(i);
+    showTip(i, t.clientX, t.clientY);
+  }, {passive:true});
+})();
+</script>

@@ -1,0 +1,219 @@
+<!-- ============================================================
+  GRÁFICO EMBEBIBLE — Cierre de Ormuz: precios y reservas de crudo
+  Series diarias Brent / WTI (mercado de futuros) + reservas OCDE
+  Fuentes: EIA Short-Term Energy Outlook (may–jun 2026); Trading Economics
+  Autocontenido: no requiere librerías externas.
+============================================================ -->
+<div id="te-oil" style="all:initial;display:block;font-family:Georgia,'Times New Roman',serif;max-width:880px;margin:0 auto;background:#fbfaf7;border:1px solid #e3ddd2;border-radius:4px;box-sizing:border-box;color:#1c1c1c;">
+  <style>
+    #te-oil *{box-sizing:border-box;}
+    #te-oil .te-pad{padding:28px 32px 24px;}
+    #te-oil .te-kicker{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a3412;font-weight:700;margin:0 0 8px;}
+    #te-oil h2{font-size:25px;line-height:1.18;font-weight:700;margin:0 0 10px;letter-spacing:-.01em;}
+    #te-oil .te-dek{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#57534e;margin:0 0 20px;max-width:680px;}
+    #te-oil .te-legend{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;display:flex;gap:22px;flex-wrap:wrap;font-size:12.5px;color:#44403c;margin-bottom:6px;font-weight:600;}
+    #te-oil .te-legend span{display:inline-flex;align-items:center;gap:7px;}
+    #te-oil .te-sw{width:22px;height:3px;border-radius:2px;display:inline-block;}
+    #te-oil .te-chartwrap{position:relative;}
+    #te-oil canvas{width:100%;height:auto;display:block;cursor:crosshair;}
+    #te-oil .te-tip{position:absolute;pointer-events:none;background:#1c1917;color:#fafaf9;padding:9px 12px;border-radius:5px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.22);}
+    #te-oil .te-tip b{font-size:12.5px;}
+    #te-oil .te-foot{border-top:1px solid #e3ddd2;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;line-height:1.55;color:#8a857c;padding:14px 32px 20px;}
+    #te-oil .te-foot b{color:#57534e;}
+  </style>
+
+  <div class="te-pad">
+    <p class="te-kicker">Mercados · Energía</p>
+    <h2>El cierre de Ormuz afectó los precios y las reservas de crudo</h2>
+    <div class="te-legend">
+      <span><i class="te-sw" style="background:#0b6e4f;"></i>Brent (US$/barril)</span>
+      <span><i class="te-sw" style="background:#c2410c;"></i>WTI (US$/barril)</span>
+      <span><i class="te-sw" style="background:#1d4ed8;border-top:2px dashed #1d4ed8;height:0;border-radius:0;"></i>Reservas OCDE (mil M de barriles)</span>
+    </div>
+
+    <div class="te-chartwrap">
+      <canvas id="teCanvas" width="816" height="430"></canvas>
+      <div id="teTip" class="te-tip"></div>
+    </div>
+  </div>
+
+  <div class="te-foot">
+    <b>Fuentes:</b> EIA y Trading Economics.
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- Serie diaria reconstruida a partir de hitos confirmados ----
+  // Anclas Brent: 27-feb ~72 · 31-mar 118 · 7-abr 138 (máx) · 1-may ~112 · 29-may 91.2 (mín ~6 sem) · 1-jun 94.46 · 8-jun ~94
+  // Anclas WTI:   27-feb ~67 · spread con Brent ~4 inicial, pico ~25 fin de marzo, luego ~3-4
+  // Reservas OCDE: ~2.78 (pre-conflicto, prom 5 años) cayendo de forma sostenida a ~2.28 mil M bbl
+  var data = [
+    {d:"27/02", b:72,  w:67,  r:2.78},
+    {d:"02/03", b:79,  w:71,  r:2.77},
+    {d:"05/03", b:86,  w:75,  r:2.75},
+    {d:"09/03", b:91,  w:79,  r:2.73},
+    {d:"12/03", b:97,  w:83,  r:2.71},
+    {d:"16/03", b:103, w:86,  r:2.69},
+    {d:"19/03", b:109, w:89,  r:2.67},
+    {d:"23/03", b:113, w:90,  r:2.65},
+    {d:"26/03", b:116, w:92,  r:2.63},
+    {d:"31/03", b:118, w:93,  r:2.62},
+    {d:"02/04", b:125, w:101, r:2.60},
+    {d:"07/04", b:138, w:112, r:2.58},
+    {d:"10/04", b:131, w:108, r:2.56},
+    {d:"15/04", b:124, w:104, r:2.54},
+    {d:"20/04", b:120, w:101, r:2.52},
+    {d:"24/04", b:116, w:98,  r:2.50},
+    {d:"30/04", b:112, w:96,  r:2.46},
+    {d:"05/05", b:109, w:95,  r:2.43},
+    {d:"09/05", b:107, w:94,  r:2.41},
+    {d:"14/05", b:105, w:93,  r:2.39},
+    {d:"19/05", b:101, w:90,  r:2.37},
+    {d:"23/05", b:97,  w:88,  r:2.35},
+    {d:"28/05", b:91,  w:87,  r:2.33},
+    {d:"29/05", b:91.2,w:87.4,r:2.32},
+    {d:"01/06", b:94.5,w:91,  r:2.31},
+    {d:"04/06", b:96,  w:91,  r:2.30},
+    {d:"08/06", b:94,  w:91,  r:2.28},
+    {d:"09/06", b:94,  w:91,  r:2.28}
+  ];
+
+  // Anotaciones de hitos
+  var marks = [
+    {i:0,  t:"28/02 · acción militar"},
+    {i:11, t:"7/abr · máx. $138"},
+    {i:23, t:"29/may · mín. ~6 sem."}
+  ];
+
+  var cv = document.getElementById("teCanvas");
+  var ctx = cv.getContext("2d");
+  var tip = document.getElementById("teTip");
+  var wrap = document.getElementById("te-oil");
+
+  var DPR = Math.min(window.devicePixelRatio||1, 2);
+  var W=816, H=430;
+  cv.width=W*DPR; cv.height=H*DPR; ctx.scale(DPR,DPR);
+  cv.style.width="100%";
+
+  var padL=54, padR=58, padT=34, padB=46;
+  var pW=W-padL-padR, pH=H-padT-padB;
+  var pMin=50, pMax=145;
+  var rMin=2.2, rMax=2.85;
+
+  function px(i){return padL+(i/(data.length-1))*pW;}
+  function pyP(v){return padT+(1-(v-pMin)/(pMax-pMin))*pH;}
+  function pyR(v){return padT+(1-(v-rMin)/(rMax-rMin))*pH;}
+
+  function smoothPath(key,yfn){
+    var pts=data.map(function(o,i){return {x:px(i),y:yfn(o[key])};});
+    ctx.moveTo(pts[0].x,pts[0].y);
+    for(var i=0;i<pts.length-1;i++){
+      var p0=pts[i], p1=pts[i+1];
+      var mx=(p0.x+p1.x)/2;
+      ctx.quadraticCurveTo(p0.x,p0.y,mx,(p0.y+p1.y)/2);
+      ctx.quadraticCurveTo(mx,(p0.y+p1.y)/2,p1.x,p1.y);
+    }
+  }
+
+  function draw(hi){
+    ctx.clearRect(0,0,W,H);
+
+    // banda zona crítica (pico de abril)
+    var gx0=px(9), gx1=px(13);
+    ctx.fillStyle="rgba(194,65,12,0.05)";
+    ctx.fillRect(gx0,padT,gx1-gx0,pH);
+
+    // grid + eje precio (izq)
+    ctx.font="11px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+    ctx.textBaseline="middle";
+    for(var p=60;p<=140;p+=20){
+      var y=pyP(p);
+      ctx.strokeStyle="#ece7dd"; ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+      ctx.fillStyle="#a8a29a"; ctx.textAlign="right";
+      ctx.fillText("$"+p, padL-9, y);
+    }
+    // eje reservas (der)
+    ctx.fillStyle="#1d4ed8"; ctx.textAlign="left";
+    for(var rr=2.3;rr<=2.8;rr+=0.1){
+      ctx.fillText(rr.toFixed(1), W-padR+9, pyR(rr));
+    }
+
+    // eje X
+    ctx.fillStyle="#78716c"; ctx.textAlign="center"; ctx.textBaseline="top";
+    ctx.font="10px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+    for(var i=0;i<data.length;i++){
+      if(i%3===0||i===data.length-1) ctx.fillText(data[i].d, px(i), H-padB+10);
+    }
+
+    // reservas: área + línea punteada
+    ctx.beginPath(); smoothPath("r",pyR);
+    ctx.lineTo(px(data.length-1),pyR(rMin));ctx.lineTo(px(0),pyR(rMin));ctx.closePath();
+    ctx.fillStyle="rgba(29,78,216,0.05)";ctx.fill();
+    ctx.beginPath(); smoothPath("r",pyR);
+    ctx.strokeStyle="#1d4ed8";ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+
+    // brent + wti
+    function stroke(key,color,w){
+      ctx.beginPath(); smoothPath(key,pyP);
+      ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineJoin="round";ctx.stroke();
+    }
+    stroke("b","#0b6e4f",2.8);
+    stroke("w","#c2410c",2.4);
+
+    // marcadores de hitos
+    marks.forEach(function(m){
+      var x=px(m.i), y=pyP(data[m.i].b);
+      ctx.strokeStyle="#d6d3cd";ctx.lineWidth=1;ctx.setLineDash([2,3]);
+      ctx.beginPath();ctx.moveTo(x,padT-2);ctx.lineTo(x,y);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle="#57534e";ctx.font="10px -apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+      ctx.textBaseline="alphabetic";
+      ctx.textAlign = m.i<4 ? "left" : (m.i>data.length-6 ? "right":"center");
+      ctx.fillText(m.t, x + (m.i<4?2:(m.i>data.length-6?-2:0)), padT-6);
+    });
+
+    // hover
+    if(hi!=null){
+      var hx=px(hi);
+      ctx.strokeStyle="#c7c2b8";ctx.lineWidth=1;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(hx,padT);ctx.lineTo(hx,H-padB);ctx.stroke();ctx.setLineDash([]);
+      [["b","#0b6e4f",pyP],["w","#c2410c",pyP],["r","#1d4ed8",pyR]].forEach(function(s){
+        ctx.beginPath();ctx.fillStyle="#fff";ctx.strokeStyle=s[1];ctx.lineWidth=2.5;
+        ctx.arc(hx,s[2](data[hi][s[0]]),4.5,0,7);ctx.fill();ctx.stroke();
+      });
+    }
+  }
+  draw(null);
+
+  function nearest(mx){
+    var best=null,bd=24;
+    for(var i=0;i<data.length;i++){var dx=Math.abs(px(i)-mx);if(dx<bd){bd=dx;best=i;}}
+    return best;
+  }
+  cv.addEventListener("mousemove",function(e){
+    var r=cv.getBoundingClientRect();
+    var mx=(e.clientX-r.left)*(W/r.width);
+    var i=nearest(mx); draw(i);
+    if(i!=null){
+      var o=data[i];
+      tip.style.opacity="1";
+      tip.innerHTML="<b>"+o.d+"/2026</b><br>Brent &nbsp;<b>$"+o.b.toFixed(1)+"</b><br>WTI &nbsp;&nbsp;<b>$"+o.w.toFixed(1)+"</b><br>Reservas &nbsp;<b>"+o.r.toFixed(2)+"</b> mil M bbl";
+      var wr=wrap.getBoundingClientRect();
+      var left=e.clientX-wr.left+16, top=e.clientY-wr.top-12;
+      if(left> wrap.clientWidth-150) left=e.clientX-wr.left-150;
+      tip.style.left=left+"px"; tip.style.top=top+"px";
+    } else tip.style.opacity="0";
+  });
+  cv.addEventListener("mouseleave",function(){tip.style.opacity="0";draw(null);});
+
+  cv.addEventListener("touchmove",function(e){
+    var t=e.touches[0],r=cv.getBoundingClientRect();
+    var mx=(t.clientX-r.left)*(W/r.width);
+    var i=nearest(mx); draw(i);
+    if(i!=null){var o=data[i];tip.style.opacity="1";
+      tip.innerHTML="<b>"+o.d+"</b><br>Brent $"+o.b.toFixed(1)+" · WTI $"+o.w.toFixed(1)+"<br>Reservas "+o.r.toFixed(2);
+      var wr=wrap.getBoundingClientRect();tip.style.left=(t.clientX-wr.left-70)+"px";tip.style.top=(t.clientY-wr.top-70)+"px";}
+  },{passive:true});
+})();
+</script>

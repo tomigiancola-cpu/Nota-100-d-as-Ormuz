@@ -1,0 +1,262 @@
+<!-- ============================================================
+  GRÁFICO EMBEBIBLE — Mercados comparados
+  Líneas interactivas normalizadas base 100 al 27/02/2026
+  S&P 500, Dow Jones, Nasdaq Composite, S&P Merval (USD), Brent
+  Estilo visual consistente con los gráficos previos, sin copete.
+============================================================ -->
+<div id="te-markets-compare" style="all:initial;display:block;font-family:Georgia,'Times New Roman',serif;max-width:900px;margin:0 auto;background:#fbfaf7;border:1px solid #e3ddd2;border-radius:4px;box-sizing:border-box;color:#1c1c1c;">
+  <style>
+    #te-markets-compare *{box-sizing:border-box;}
+    #te-markets-compare .te-pad{padding:28px 32px 24px;}
+    #te-markets-compare h2{font-size:25px;line-height:1.18;font-weight:700;margin:0 0 14px;letter-spacing:-.01em;}
+    #te-markets-compare .te-sub{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#6b665f;margin:0 0 16px;}
+    #te-markets-compare .te-legend{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;display:flex;gap:18px;row-gap:10px;flex-wrap:wrap;font-size:12.5px;color:#44403c;margin-bottom:10px;font-weight:600;}
+    #te-markets-compare .te-legend span{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+    #te-markets-compare .te-line{width:22px;height:0;border-top:3px solid #000;display:inline-block;position:relative;top:-1px;border-radius:999px;}
+    #te-markets-compare .te-chartwrap{position:relative;}
+    #te-markets-compare canvas{width:100%;height:auto;display:block;cursor:crosshair;}
+    #te-markets-compare .te-tip{position:absolute;pointer-events:none;background:#1c1917;color:#fafaf9;padding:10px 12px;border-radius:5px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.55;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.22);}
+    #te-markets-compare .te-tip b{font-size:12.5px;}
+    #te-markets-compare .te-foot{border-top:1px solid #e3ddd2;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;line-height:1.55;color:#8a857c;padding:14px 32px 20px;}
+    #te-markets-compare .te-foot b{color:#57534e;}
+    @media (max-width:700px){
+      #te-markets-compare .te-pad{padding:24px 20px 20px;}
+      #te-markets-compare .te-foot{padding:12px 20px 18px;}
+      #te-markets-compare h2{font-size:22px;}
+    }
+  </style>
+
+  <div class="te-pad">
+    <h2>S&amp;P 500, Dow, Nasdaq, S&amp;P Merval y Brent: comparación desde el 27 de febrero</h2>
+    <div class="te-legend">
+      <span><i class="te-line" style="border-top-color:#0f766e;"></i>S&amp;P 500</span>
+      <span><i class="te-line" style="border-top-color:#2563eb;"></i>Dow Jones</span>
+      <span><i class="te-line" style="border-top-color:#7c3aed;"></i>Nasdaq</span>
+      <span><i class="te-line" style="border-top-color:#b45309;"></i>S&amp;P Merval</span>
+      <span><i class="te-line" style="border-top-color:#dc2626;"></i>Brent</span>
+    </div>
+
+    <div class="te-chartwrap">
+      <canvas id="teMarketsCompareCanvas" width="836" height="470"></canvas>
+      <div id="teMarketsCompareTip" class="te-tip"></div>
+    </div>
+  </div>
+
+  <div class="te-foot">
+    <b>Fuentes:</b> FRED (S&amp;P 500, Dow Jones, Nasdaq Composite y Brent/EIA), Rava Bursátil (S&amp;P Merval) y Reuters para el cierre de Brent del 08/06/2026.
+  </div>
+</div>
+
+<script>
+(function(){
+  var data = [
+    {d:'27 feb', date:'2026-02-27', sp:6878.88, dow:48977.92, nas:22668.21, merval:1809.33, brent:71.32},
+    {d:'06 mar', date:'2026-03-06', sp:6740.02, dow:47501.55, nas:22387.68, merval:1775.48, brent:95.74},
+    {d:'13 mar', date:'2026-03-13', sp:6632.19, dow:46558.47, nas:22105.36, merval:1798.30, brent:103.23},
+    {d:'20 mar', date:'2026-03-20', sp:6506.48, dow:45577.47, nas:21647.61, merval:1857.05, brent:118.42},
+    {d:'27 mar', date:'2026-03-27', sp:6368.85, dow:45166.64, nas:20948.36, merval:1895.35, brent:121.47},
+    {d:'03 abr', date:'2026-04-03', sp:6582.69, dow:46504.67, nas:21879.18, merval:2030.08, brent:127.61},
+    {d:'10 abr', date:'2026-04-10', sp:6816.89, dow:47916.57, nas:22902.89, merval:2035.18, brent:119.07},
+    {d:'17 abr', date:'2026-04-17', sp:7126.06, dow:49447.43, nas:24468.48, merval:1975.86, brent:98.63},
+    {d:'24 abr', date:'2026-04-24', sp:7165.08, dow:49230.71, nas:24836.60, merval:1896.25, brent:111.86},
+    {d:'01 may', date:'2026-05-01', sp:7230.12, dow:49499.27, nas:25114.44, merval:1883.29, brent:118.26},
+    {d:'08 may', date:'2026-05-08', sp:7398.93, dow:49609.16, nas:26247.08, merval:1863.19, brent:103.48},
+    {d:'15 may', date:'2026-05-15', sp:7408.50, dow:49526.17, nas:26225.14, merval:1819.96, brent:113.96},
+    {d:'22 may', date:'2026-05-22', sp:7473.47, dow:50579.70, nas:26343.97, merval:1934.44, brent:106.90},
+    {d:'29 may', date:'2026-05-29', sp:7580.06, dow:51032.46, nas:26972.62, merval:2130.06, brent:92.88},
+    {d:'08 jun', date:'2026-06-08', sp:7405.73, dow:50786.01, nas:25929.66, merval:2038.83, brent:94.25}
+  ];
+
+  var series = [
+    {key:'sp', name:'S&P 500', color:'#0f766e'},
+    {key:'dow', name:'Dow Jones', color:'#2563eb'},
+    {key:'nas', name:'Nasdaq', color:'#7c3aed'},
+    {key:'merval', name:'S&P Merval', color:'#b45309'},
+    {key:'brent', name:'Brent', color:'#dc2626'}
+  ];
+
+  var base = data[0];
+  var allIdx = [];
+  data.forEach(function(row){
+    series.forEach(function(s){
+      row[s.key + '_idx'] = row[s.key] / base[s.key] * 100;
+      allIdx.push(row[s.key + '_idx']);
+    });
+  });
+
+  var minIdx = Math.min.apply(null, allIdx);
+  var maxIdx = Math.max.apply(null, allIdx);
+  var minY = Math.floor((minIdx - 4) / 5) * 5;
+  var maxY = Math.ceil((maxIdx + 4) / 5) * 5;
+  var stepY = 10;
+  if((maxY - minY) <= 50) stepY = 5;
+  if((maxY - minY) > 100) stepY = 20;
+
+  var cv = document.getElementById('teMarketsCompareCanvas');
+  var ctx = cv.getContext('2d');
+  var tip = document.getElementById('teMarketsCompareTip');
+  var wrap = document.getElementById('te-markets-compare');
+
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  var W = 836, H = 470;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+  cv.style.width = '100%';
+
+  var padL = 66, padR = 24, padT = 30, padB = 58;
+  var pW = W - padL - padR, pH = H - padT - padB;
+
+  function gx(i){ return padL + (pW/(data.length-1))*i; }
+  function py(v){ return padT + (1 - (v-minY)/(maxY-minY)) * pH; }
+
+  function drawLine(key, color){
+    ctx.beginPath();
+    data.forEach(function(row,i){
+      var x = gx(i), y = py(row[key + '_idx']);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    data.forEach(function(row,i){
+      ctx.beginPath();
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.arc(gx(i), py(row[key + '_idx']), 3.8, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    });
+  }
+
+  function draw(hoverIdx){
+    ctx.clearRect(0,0,W,H);
+
+    // grid horizontal
+    ctx.font = '11px -apple-system,Segoe UI,Helvetica,Arial,sans-serif';
+    ctx.textBaseline = 'middle';
+    for(var v=minY; v<=maxY; v+=stepY){
+      var y = py(v);
+      ctx.strokeStyle = '#ece7dd';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+      ctx.fillStyle = '#a8a29a';
+      ctx.textAlign = 'right';
+      ctx.fillText(v, padL-10, y);
+    }
+
+    // base 100 emphasis
+    if(100 >= minY && 100 <= maxY){
+      var y100 = py(100);
+      ctx.strokeStyle = '#d6d0c7';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(padL, y100); ctx.lineTo(W-padR, y100); ctx.stroke();
+      ctx.fillStyle = '#78716c';
+      ctx.textAlign = 'right';
+      ctx.fillText('100', padL-10, y100);
+    }
+
+    // x labels
+    ctx.fillStyle = '#78716c';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = '11px -apple-system,Segoe UI,Helvetica,Arial,sans-serif';
+    data.forEach(function(row,i){
+      ctx.fillText(row.d, gx(i), H-padB+14);
+    });
+
+    // y axis title
+    ctx.save();
+    ctx.translate(18, H/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillStyle = '#78716c';
+    ctx.font = '11px -apple-system,Segoe UI,Helvetica,Arial,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Índice (27 feb = 100)', 0, 0);
+    ctx.restore();
+
+    // lines
+    series.forEach(function(s){ drawLine(s.key, s.color); });
+
+    if(hoverIdx != null){
+      var hx = gx(hoverIdx);
+      ctx.strokeStyle = '#c7c2b8';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(hx,padT); ctx.lineTo(hx,H-padB); ctx.stroke();
+      ctx.setLineDash([]);
+
+      series.forEach(function(s){
+        var row = data[hoverIdx];
+        ctx.beginPath();
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2.8;
+        ctx.arc(hx, py(row[s.key+'_idx']), 5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+  }
+
+  function nearest(mx){
+    var best = 0, bestDist = Infinity;
+    data.forEach(function(row,i){
+      var dist = Math.abs(gx(i)-mx);
+      if(dist < bestDist){ bestDist = dist; best = i; }
+    });
+    return best;
+  }
+
+  function fmtNum(n){
+    if(n >= 1000) return n.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
+    return n.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
+  }
+
+  function showTip(i, clientX, clientY){
+    var row = data[i];
+    var html = '<b>'+row.d+' 2026</b><br>';
+    series.forEach(function(s){
+      var idx = row[s.key+'_idx'];
+      var chg = idx - 100;
+      var sign = chg >= 0 ? '+' : '';
+      html += '<span style="color:'+s.color+'">●</span> '+s.name+': <b>'+fmtNum(row[s.key])+'</b> ('+sign+chg.toFixed(1)+'%)<br>';
+    });
+    tip.innerHTML = html.slice(0,-4);
+    tip.style.opacity = '1';
+    var wr = wrap.getBoundingClientRect();
+    var left = clientX - wr.left + 16;
+    var top = clientY - wr.top - 10;
+    if(left > wrap.clientWidth - 252) left = clientX - wr.left - 252;
+    if(top > wrap.clientHeight - 182) top = wrap.clientHeight - 182;
+    if(top < 8) top = 8;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  cv.addEventListener('mousemove', function(e){
+    var r = cv.getBoundingClientRect();
+    var mx = (e.clientX-r.left) * (W/r.width);
+    var i = nearest(mx);
+    draw(i);
+    showTip(i, e.clientX, e.clientY);
+  });
+
+  cv.addEventListener('mouseleave', function(){
+    tip.style.opacity = '0';
+    draw(null);
+  });
+
+  cv.addEventListener('touchmove', function(e){
+    var t = e.touches[0], r = cv.getBoundingClientRect();
+    var mx = (t.clientX-r.left) * (W/r.width);
+    var i = nearest(mx);
+    draw(i);
+    showTip(i, t.clientX, t.clientY);
+  }, {passive:true});
+
+  draw(null);
+})();
+</script>
